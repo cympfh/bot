@@ -4,7 +4,9 @@ import csv, sys
 from datetime import datetime, timedelta
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt, matplotlib.dates as md
-LOG, PNG = "/workspace/ito/aclog/log.csv", "/workspace/ito/aclog/graph.png"
+import os
+HERE = os.path.dirname(os.path.abspath(__file__))
+LOG, PNG = f"{HERE}/aclog/log.csv", f"{HERE}/aclog/graph.png"
 hours = float(sys.argv[1]) if len(sys.argv) > 1 else 24
 rows = list(csv.DictReader(open(LOG)))
 since = datetime.now() - timedelta(hours=hours)

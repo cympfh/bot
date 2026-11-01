@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+cachetools
+requests
+matplotlib
+python-osc
