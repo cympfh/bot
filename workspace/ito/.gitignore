@@ -1,0 +1,5 @@
+venv/
+aclog/
+__pycache__/
+last_aircon.json
+*.png
