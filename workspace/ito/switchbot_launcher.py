@@ -7,4 +7,4 @@ os.environ["SWITCHBOT_API_TOKEN"] = d["token"]
 os.environ["SWITCHBOT_API_SECRET"] = d["secret"]
 sys.argv = ["switchbot"] + sys.argv[1:]
 import runpy
-runpy.run_path("/workspace/ito/switchbot.py", run_name="__main__")
+runpy.run_path(str(Path(__file__).resolve().parent / "switchbot.py"), run_name="__main__")

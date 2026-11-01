@@ -50,7 +50,7 @@ def run(command: str | list[str]) -> str:
     if isinstance(command, str):
         command = command.strip().split()
     env = os.environ.copy()
-    env["PATH"] = "/home/box/.local/bin:/workspace/ito/venv/bin:" + env.get("PATH", "")
+    env["PATH"] = f"/home/box/.local/bin:{Path(__file__).resolve().parent}/venv/bin:" + env.get("PATH", "")
     if command and command[0] == "switchbot":
         command = ["/home/box/.local/bin/switchbot", *command[1:]]
     res = subprocess.run(command, capture_output=True, env=env, timeout=20)

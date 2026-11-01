@@ -1,6 +1,6 @@
 # ito (IoT操作)
 
-家のエアコン・灯り・温湿度計を扱うスクリプト。実行時の場所は `/workspace/ito`（このディレクトリへのシンボリックリンクで動かしている）。
+家のエアコン・灯り・温湿度計を扱うスクリプト。このディレクトリで直接動かす（`/workspace/bot/workspace/ito`）。初回は `uv venv venv && uv pip install -p venv -r requirements.txt`。
 
 - `main.py`: FastAPI サーバ（127.0.0.1:9094）。SwitchBot API でエアコン・灯り・センサーを操作する。`static/index.html` はダッシュボード。
 - `switchbot.py` / `switchbot_launcher.py`: SwitchBot API クライアントと、認証情報を環境変数に読み込んで起動するランチャ。トークン類はレポジトリに置かない。

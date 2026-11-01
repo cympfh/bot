@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """リビングのエアコン自動制御。使い方: acctl.py <厳しめ|標準|ゆるめ>  (5分おき)
-ログ: /workspace/ito/aclog/log.csv  グラフ: /workspace/ito/aclog/graph.png"""
+ログ: <このディレクトリ>/aclog/log.csv  グラフ: <このディレクトリ>/aclog/graph.png"""
 import csv, json, os, subprocess, sys, time, urllib.request
 from datetime import datetime, timedelta
 
 API = "http://127.0.0.1:9094"
-DIR = "/workspace/ito/aclog"
+HERE = os.path.dirname(os.path.abspath(__file__))
+DIR = f"{HERE}/aclog"
 LOG = f"{DIR}/log.csv"
 PNG = f"{DIR}/graph.png"
 INTERVAL = 300
@@ -37,8 +38,8 @@ def post(body):
 def ensure_api():
     try: get("/api/aircon"); return
     except Exception: pass
-    env = dict(os.environ, PATH="/home/box/.local/bin:/workspace/ito/venv/bin:" + os.environ.get("PATH", ""))
-    subprocess.Popen(["uvicorn", "main:app", "--host", "127.0.0.1", "--port", "9094"], cwd="/workspace/ito",
+    env = dict(os.environ, PATH=f"/home/box/.local/bin:{HERE}/venv/bin:" + os.environ.get("PATH", ""))
+    subprocess.Popen(["uvicorn", "main:app", "--host", "127.0.0.1", "--port", "9094"], cwd=HERE,
                      env=env, stdout=open(f"{DIR}/uvicorn.log", "a"), stderr=subprocess.STDOUT, start_new_session=True)
     time.sleep(8)
 
@@ -117,7 +118,7 @@ def main():
     os.makedirs(DIR, exist_ok=True)
     while True:
         step(rule)
-        try: subprocess.run([sys.executable, "/workspace/ito/acgraph.py"], timeout=60)
+        try: subprocess.run([sys.executable, f"{HERE}/acgraph.py"], timeout=60)
         except Exception: pass
         time.sleep(INTERVAL)
 
