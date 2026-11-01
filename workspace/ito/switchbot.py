@@ -1,0 +1,177 @@
+#!/usr/bin/env python3
+
+import base64
+import hashlib
+import hmac
+import json
+import os
+import time
+import uuid
+from typing import Any
+
+import click
+import requests
+
+
+class Switchbot:
+    def _auth(self):
+        token = os.environ.get("SWITCHBOT_API_TOKEN")
+        assert token
+        secret = os.environ.get("SWITCHBOT_API_SECRET")
+        assert secret
+        nonce = uuid.uuid4()
+        t = int(round(time.time() * 1000))
+        string_to_sign = bytes(f"{token}{t}{nonce}", "utf-8")
+        key = bytes(secret, "utf-8")
+        sign = base64.b64encode(
+            hmac.new(key, msg=string_to_sign, digestmod=hashlib.sha256).digest()
+        )
+        self.headers = {
+            "Authorization": token,
+            "Content-Type": "application/json",
+            "charset": "utf8",
+            "t": str(t),
+            "sign": str(sign, "utf-8"),
+            "nonce": str(nonce),
+        }
+
+    def __init__(self):
+        self._auth()
+
+    def get(self, uri: str):
+        url = f"https://api.switch-bot.com{uri}"
+        return requests.get(url, headers=self.headers).json()
+
+    def post(self, uri: str, data):
+        url = f"https://api.switch-bot.com{uri}"
+        return requests.post(url, json=data, headers=self.headers).json()
+
+
+@click.group()
+def main():
+    pass
+
+
+@main.command()
+def devices():
+    res = Switchbot().get("/v1.1/devices")
+    print(json.dumps(res["body"]))
+
+
+@main.command()
+@click.argument("device_id", type=str)
+def status(device_id: str):
+    res = Switchbot().get(f"/v1.1/devices/{device_id}/status")
+    print(json.dumps(res))
+
+
+@main.command()
+@click.argument("device_id", type=str)
+@click.argument("data", type=str, default="")
+def send(device_id: str, data: Any):
+    if data:
+        data_json = json.loads(data)
+    else:
+        data_json = {}
+    res = Switchbot().post(f"/v1.1/devices/{device_id}/commands", data_json)
+    print(json.dumps(res))
+
+
+@main.group()
+def get():
+    pass
+
+
+@get.command(name="room")
+def get_room():
+    device_id = "D641FC309593"
+    res = Switchbot().get(f"/v1.1/devices/{device_id}/status")
+    print(json.dumps(res))
+
+
+@get.command(name="outside")
+def get_outside():
+    device_id = "F5BD2BF834BF"
+    res = Switchbot().get(f"/v1.1/devices/{device_id}/status")
+    print(json.dumps(res))
+
+
+@main.group()
+def aircon():
+    pass
+
+
+@aircon.command(name="off")
+def aircon_off():
+    device_id = "02-202010092320-98867876"
+    data = {"commandType": "command", "command": "setAll", "parameter": "26,1,3,off"}
+    res = Switchbot().post(f"/v1.1/devices/{device_id}/commands", data)
+    print(json.dumps(res))
+
+
+@aircon.command(name="on")
+@click.argument("mode", type=click.Choice(["heat", "cool", "fan"]))
+def aircon_on(mode: str):
+    device_id = "02-202010092320-98867876"
+    if mode == "cool":
+        parameter = "24,2,1,on"
+    elif mode == "fan":
+        parameter = "25,4,3,on"
+    else:
+        parameter = "26,5,1,on"
+    data = {"commandType": "command", "command": "setAll", "parameter": parameter}
+    res = Switchbot().post(f"/v1.1/devices/{device_id}/commands", data)
+    print(json.dumps(res))
+
+
+@main.group()
+def light():
+    pass
+
+
+LIGHT_DEVICES = [
+    ("6055F92DD962", 0, 0),
+    ("6055F922E062", 0, 0),
+    ("6055F9236AAE", 0, 0),
+    ("6055F92C65B2", 0, 0),
+    ("68B6B3B2CCE6", 0, 0),
+    ("6055F933FCBA", 1, 50),
+    ("6055F936FA16", 1, 50),
+    ("68B6B3AFEAFE", 1, 50),
+    ("686725B28D1A", 30, 60),
+]
+
+
+@light.command(name="off")
+def light_off():
+    sb = Switchbot()
+    data = {"commandType": "command", "command": "turnOff", "parameter": "default"}
+    for device_id, _, _ in LIGHT_DEVICES:
+        sb.post(f"/v1.1/devices/{device_id}/commands", data)
+    print(json.dumps({"status": "Accepted", "result": "All lights off"}))
+
+
+@light.command(name="on")
+def light_on():
+    sb = Switchbot()
+    for device_id, _, brightness in LIGHT_DEVICES:
+        data = {"commandType": "command", "command": "setBrightness", "parameter": brightness}
+        sb.post(f"/v1.1/devices/{device_id}/commands", data)
+    print(json.dumps({"status": "Accepted", "result": "All lights on"}))
+
+
+@main.command()
+def scenes():
+    res = Switchbot().get("/v1.1/scenes")
+    print(json.dumps(res))
+
+
+@main.command()
+@click.argument("scene_id", type=str)
+def scene(scene_id: str):
+    res = Switchbot().post(f"/v1.1/scenes/{scene_id}/execute", {})
+    print(json.dumps(res))
+
+
+if __name__ == "__main__":
+    main()

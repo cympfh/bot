@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ito</title>
+<style>
+  :root {
+    --ink: #f4f7fb;
+    --muted: rgba(244,247,251,.55);
+    --glass: rgba(8,12,20,.28);
+    --bar: rgba(255,255,255,.18);
+    --bar-fill: rgba(255,255,255,.92);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    font-family: "SF Pro Display", "Segoe UI", "Hiragino Sans", system-ui, sans-serif;
+    color: var(--ink);
+    background: #070a10;
+  }
+  body {
+    display: grid;
+    grid-template-rows: auto 1fr auto auto;
+    min-height: 100dvh;
+  }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    padding: 14px;
+    height: 100%;
+    min-height: 0;
+  }
+  @media (max-width: 900px) {
+    .board { grid-template-columns: 1fr; grid-template-rows: repeat(3, 1fr); }
+  }
+  .card {
+    position: relative;
+    border-radius: 28px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 28px 28px 24px;
+    isolation: isolate;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.18),
+      0 24px 60px rgba(0,0,0,.35);
+    transition: background 1.2s ease, color .6s ease;
+    min-height: 0;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: -20%;
+    background:
+      radial-gradient(ellipse at 20% 15%, rgba(255,255,255,.22), transparent 45%),
+      radial-gradient(ellipse at 85% 80%, rgba(0,0,0,.25), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .card > * { position: relative; z-index: 1; }
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .glyph {
+    font-size: clamp(28px, 4vw, 44px);
+    line-height: 1;
+    filter: drop-shadow(0 6px 18px rgba(0,0,0,.25));
+  }
+  .tag {
+    font-size: 12px;
+    letter-spacing: .28em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .temp-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+  }
+  .temp {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(64px, 12vw, 148px);
+    font-weight: 700;
+    letter-spacing: -.06em;
+    line-height: .92;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 10px 40px rgba(0,0,0,.28);
+    overflow: visible;
+  }
+  .temp .num {
+    line-height: .9;
+  }
+  .temp .unit {
+    display: block;
+    font-size: clamp(18px, 2.6vw, 32px);
+    font-weight: 600;
+    opacity: .78;
+    margin-top: .12em;
+    letter-spacing: .04em;
+    line-height: 1;
+  }
+  .err .temp .unit { display: none; }
+  .bottom {
+    display: grid;
+    gap: 10px;
+  }
+  .hum-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: .08em;
+  }
+  .hum-val {
+    font-size: 18px;
+    color: var(--ink);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .bar {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--bar);
+    overflow: hidden;
+  }
+  .bar > i {
+    display: block;
+    height: 100%;
+    width: 0%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(255,255,255,.55), var(--bar-fill));
+    box-shadow: 0 0 18px rgba(255,255,255,.35);
+    transition: width 1s cubic-bezier(.22,1,.36,1);
+  }
+
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    padding: 12px 22px 4px;
+    flex-wrap: wrap;
+  }
+  .meta-clock {
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+  }
+  .meta-date {
+    display: block;
+    font-size: clamp(13px, 1.8vw, 16px);
+    letter-spacing: .18em;
+    color: rgba(244,247,251,.42);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .meta-time {
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 700;
+    letter-spacing: -.03em;
+    color: rgba(244,247,251,.92);
+    text-shadow: 0 0 28px rgba(109,255,176,.18);
+  }
+
+  .meta-weather {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 4.5em;
+  }
+  .meta-weather .wx-icon {
+    font-size: clamp(28px, 4.5vw, 40px);
+    line-height: 1;
+    filter: drop-shadow(0 6px 16px rgba(0,0,0,.28));
+  }
+  .meta-weather .wx-note {
+    font-size: clamp(10px, 1.4vw, 12px);
+    letter-spacing: .06em;
+    color: rgba(244,247,251,.48);
+    font-weight: 600;
+    text-align: center;
+    max-width: 11em;
+    line-height: 1.25;
+  }
+  .meta-sun {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .meta-sun .sun-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  .meta-sun .sun-label {
+    font-size: 11px;
+    letter-spacing: .2em;
+    color: rgba(244,247,251,.38);
+    font-weight: 600;
+  }
+  .meta-sun .sun-val {
+    font-size: clamp(16px, 2.4vw, 22px);
+    font-weight: 650;
+    color: rgba(244,247,251,.82);
+  }
+  .foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 22px 14px;
+    color: rgba(244,247,251,.35);
+    font-size: 11px;
+    letter-spacing: .16em;
+  }
+  .pulse {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #6dffb0;
+    box-shadow: 0 0 12px #6dffb0;
+    animation: pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: .45; transform: scale(.9); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
+  .err .temp { font-size: clamp(28px, 5vw, 48px); opacity: .7; }
+
+  .ac-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 18px;
+    padding: 0 22px 10px;
+    color: rgba(244,247,251,.72);
+    font-size: clamp(14px, 2.2vw, 20px);
+    font-weight: 600;
+    letter-spacing: .04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .ac-state .ac-main {
+    color: #f4f7fb;
+    text-shadow: 0 0 24px rgba(109,255,176,.25);
+  }
+  .ac-state .ac-at {
+    color: rgba(244,247,251,.38);
+    font-size: .72em;
+    font-weight: 500;
+    letter-spacing: .12em;
+  }
+</style>
+</head>
+<body>
+  <header class="meta" id="meta">
+    <div class="meta-clock">
+      <span class="meta-date" id="meta-date">—</span>
+      <span class="meta-time" id="meta-time">—:—:—</span>
+    </div>
+    <div class="meta-weather" id="meta-weather" title="文京区">
+      <span class="wx-icon" id="wx-icon">—</span>
+      <span class="wx-note" id="wx-note"></span>
+    </div>
+    <div class="meta-sun">
+      <div class="sun-item">
+        <span class="sun-label">日の出</span>
+        <span class="sun-val" id="sunrise">—:—</span>
+      </div>
+      <div class="sun-item">
+        <span class="sun-label">日の入り</span>
+        <span class="sun-val" id="sunset">—:—</span>
+      </div>
+    </div>
+  </header>
+  <main class="board" id="board">
+    <section class="card" data-key="hub2" data-icon="🛋" data-label="IN">
+      <div class="top"><span class="glyph">🛋</span><span class="tag">IN</span></div>
+      <div class="temp-wrap"><div class="temp">—</div></div>
+      <div class="bottom">
+        <div class="hum-row"><span>RH</span><span class="hum-val">—</span></div>
+        <div class="bar"><i></i></div>
+      </div>
+    </section>
+    <section class="card" data-key="onmo" data-icon="🏘" data-label="OUT">
+      <div class="top"><span class="glyph">🏘</span><span class="tag">OUT</span></div>
+      <div class="temp-wrap"><div class="temp">—</div></div>
+      <div class="bottom">
+        <div class="hum-row"><span>RH</span><span class="hum-val">—</span></div>
+        <div class="bar"><i></i></div>
+      </div>
+    </section>
+    <section class="card" data-key="bun" data-icon="🐤" data-label="BUN">
+      <div class="top"><span class="glyph">🐤</span><span class="tag">BUN</span></div>
+      <div class="temp-wrap"><div class="temp">—</div></div>
+      <div class="bottom">
+        <div class="hum-row"><span>RH</span><span class="hum-val">—</span></div>
+        <div class="bar"><i></i></div>
+      </div>
+    </section>
+  </main>
+  <div class="ac-state" id="ac-state">
+    <span class="ac-main" id="ac-main">AC —</span>
+    <span class="ac-at" id="ac-at"></span>
+  </div>
+  <footer class="foot">
+    <span style="display:flex;align-items:center;gap:8px"><span class="pulse"></span>ito</span>
+    <span id="clock-sub">live</span>
+  </footer>
+<script>
+function lerp(a, b, t) { return a + (b - a) * t; }
+function hexToRgb(h) {
+  h = h.replace('#','');
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+function rgbToHex(r,g,b) {
+  return '#' + [r,g,b].map(x => Math.round(x).toString(16).padStart(2,'0')).join('');
+}
+function mix(c1, c2, t) {
+  const a = hexToRgb(c1), b = hexToRgb(c2);
+  return rgbToHex(lerp(a[0],b[0],t), lerp(a[1],b[1],t), lerp(a[2],b[2],t));
+}
+/* cold → comfy → hot */
+const STOPS = [
+  { t: 16, c: '#1a3a8f' },
+  { t: 20, c: '#1f7a9c' },
+  { t: 23, c: '#1f9b7a' },
+  { t: 26, c: '#3d9b4a' },
+  { t: 28, c: '#c9891e' },
+  { t: 30, c: '#d4551a' },
+  { t: 33, c: '#b01d2e' },
+];
+function colorForTemp(t) {
+  if (t == null || Number.isNaN(t)) return '#1a1f2b';
+  if (t <= STOPS[0].t) return STOPS[0].c;
+  if (t >= STOPS[STOPS.length-1].t) return STOPS[STOPS.length-1].c;
+  for (let i = 0; i < STOPS.length - 1; i++) {
+    const a = STOPS[i], b = STOPS[i+1];
+    if (t >= a.t && t <= b.t) {
+      const u = (t - a.t) / (b.t - a.t);
+      return mix(a.c, b.c, u);
+    }
+  }
+  return '#1a1f2b';
+}
+function inkFor(bg) {
+  const [r,g,b] = hexToRgb(bg);
+  const lum = (0.2126*r + 0.7152*g + 0.0722*b) / 255;
+  return lum > 0.55 ? '#0b1220' : '#f4f7fb';
+}
+function parsePayload(data) {
+  const body = data?.raw?.body || {};
+  let t = body.temperature;
+  let h = body.humidity;
+  if (t == null && typeof data?.message === 'string') {
+    const m = data.message.match(/([0-9]+(?:\.[0-9]+)?)\s*℃/);
+    if (m) t = parseFloat(m[1]);
+  }
+  if (h == null && typeof data?.message === 'string') {
+    const m = data.message.match(/([0-9]+(?:\.[0-9]+)?)\s*%/);
+    if (m) h = parseFloat(m[1]);
+  }
+  return { t: t == null ? null : Number(t), h: h == null ? null : Number(h) };
+}
+function paint(card, { t, h }) {
+  const bg = colorForTemp(t);
+  const ink = inkFor(bg);
+  card.style.background = `linear-gradient(160deg, ${mix(bg,'#ffffff',0.12)} 0%, ${bg} 48%, ${mix(bg,'#000000',0.22)} 100%)`;
+  card.style.color = ink;
+  card.style.setProperty('--ink', ink);
+  card.style.setProperty('--muted', ink === '#0b1220' ? 'rgba(11,18,32,.55)' : 'rgba(244,247,251,.55)');
+  card.style.setProperty('--bar', ink === '#0b1220' ? 'rgba(11,18,32,.18)' : 'rgba(255,255,255,.18)');
+  card.style.setProperty('--bar-fill', ink);
+  const tempEl = card.querySelector('.temp');
+  if (t == null) {
+    card.classList.add('err');
+    tempEl.innerHTML = '<span class="num">—</span>';
+  } else {
+    card.classList.remove('err');
+    tempEl.innerHTML = `<span class="num">${t.toFixed(1)}</span><span class="unit">℃</span>`;
+  }
+  const humEl = card.querySelector('.hum-val');
+  const bar = card.querySelector('.bar > i');
+  if (h == null) {
+    humEl.textContent = '—';
+    bar.style.width = '0%';
+  } else {
+    humEl.textContent = `${Math.round(h)}%`;
+    bar.style.width = `${Math.max(0, Math.min(100, h))}%`;
+  }
+}
+async function loadOne(key) {
+  const res = await fetch(`/api/temp/${key}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(String(res.status));
+  return parsePayload(await res.json());
+}
+
+async function loadAircon() {
+  try {
+    const res = await fetch('/api/aircon', { cache: 'no-store' });
+    if (!res.ok) throw new Error(String(res.status));
+    const d = await res.json();
+    const main = document.getElementById('ac-main');
+    const at = document.getElementById('ac-at');
+    if (!d || !d.mode) {
+      main.textContent = 'AC —';
+      at.textContent = '';
+      return;
+    }
+    if (d.mode === 'off') {
+      main.textContent = 'オフ';
+    } else {
+      const label = d.label || d.mode;
+      const parts = [label];
+      if (d.temperature != null) parts.push(`${d.temperature}°`);
+      if (d.fan != null) parts.push(`風${d.fan}`);
+      main.textContent = parts.join(' · ');
+    }
+    at.textContent = d.at ? d.at.replace(/^\d{4}-/, '').replace(/:(\d{2})$/, '') : '';
+  } catch (e) {
+    document.getElementById('ac-main').textContent = 'AC —';
+    document.getElementById('ac-at').textContent = '';
+  }
+}
+function tickClock() {
+  const now = new Date();
+  const dateEl = document.getElementById('meta-date');
+  const timeEl = document.getElementById('meta-time');
+  if (dateEl) {
+    dateEl.textContent = now.toLocaleDateString('ja-JP', {
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
+    });
+  }
+  if (timeEl) {
+    timeEl.textContent = now.toLocaleTimeString('ja-JP', {
+      timeZone: 'Asia/Tokyo',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    });
+  }
+}
+
+
+async function loadWeather() {
+  try {
+    const res = await fetch('/api/weather', { cache: 'no-store' });
+    if (!res.ok) throw new Error(String(res.status));
+    const d = await res.json();
+    document.getElementById('wx-icon').textContent = d.icon || '—';
+    document.getElementById('wx-note').textContent = d.note || '';
+  } catch (e) {
+    document.getElementById('wx-icon').textContent = '—';
+    document.getElementById('wx-note').textContent = '';
+  }
+}
+
+async function loadSun() {
+  try {
+    const res = await fetch('/api/sun', { cache: 'no-store' });
+    if (!res.ok) throw new Error(String(res.status));
+    const d = await res.json();
+    document.getElementById('sunrise').textContent = d.sunrise || '—:—';
+    document.getElementById('sunset').textContent = d.sunset || '—:—';
+  } catch (e) {
+    document.getElementById('sunrise').textContent = '—:—';
+    document.getElementById('sunset').textContent = '—:—';
+  }
+}
+
+async function refresh() {
+  const cards = [...document.querySelectorAll('.card')];
+  await Promise.all(cards.map(async (card) => {
+    const key = card.dataset.key;
+    try {
+      paint(card, await loadOne(key));
+    } catch (e) {
+      paint(card, { t: null, h: null });
+    }
+  }));
+  tickClock();
+  await loadAircon();
+  await loadSun();
+  await loadWeather();
+}
+tickClock();
+setInterval(tickClock, 1000);
+refresh();
+setInterval(refresh, 15000);
+</script>
+</body>
+</html>
