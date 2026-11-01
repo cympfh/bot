@@ -51,7 +51,7 @@ def norm(d):
 
 def decide(rule, T, H):
     if H > 60: return "HUMID", DRY
-    if T < 20: return "COLD", HEAT
+    if T < 24.5: return "COLD", HEAT
     table, offth = RULES[rule]
     for th, name, body in table:
         if T > th: return name, body
