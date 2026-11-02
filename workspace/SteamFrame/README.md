@@ -17,7 +17,7 @@ VR ヘッドセット Steam Frame まわり (SSH での操作, 常駐サービ�
 | [vrc-wrist-notifier](https://github.com/cympfh/vrc-wrist-notifier) | Windows | VRChat のログから参加・退出・招待などを拾ってオーバーレイに通知. 履歴は自前の history.jsonl に残すので, VRChat 本体のログを消しても残る |
 | [frame-doctor](https://github.com/cympfh/frame-doctor) | Frame | 温度・電池・空き容量・SteamVR・ツールの状態を 1 コマンドで見る. 読むだけで何も変えない |
 | [frame-shot-sync](https://github.com/cympfh/frame-shot-sync) | Windows (PowerShell) | Frame のスクリーンショットを PC の `Pictures\Steam Frame\YYYY-MM` にコピー. 手動で起動 |
-| [frame-gaze-gestures](https://github.com/cympfh/frame-gaze-gestures) | Frame | 長いまばたき・ウインク・上を見る動きで VRChat の OSC やコマンドを動かす. frameeyeosc の状態を読む. 入れてあるが自動起動はオフ |
+| [frame-gaze-gestures](https://github.com/cympfh/frame-gaze-gestures) | Frame | 長いまばたき・ウインク・上を見る動きで VRChat の OSC やコマンドを動かす. frameeyeosc の状態を読むので, frameeyeosc をやめた今は動かない. 自動起動はオフ |
 | [frame-vitals-osc](https://github.com/cympfh/frame-vitals-osc) | Frame | 電池・温度・充電状態を OSC で VRChat に送る. 入れてあるが自動起動はオフ |
 
 ### やめたもの
@@ -30,9 +30,9 @@ VR ヘッドセット Steam Frame まわり (SSH での操作, 常駐サービ�
 
 自作ではないが, Frame に入れて調整したもの.
 
-- frameeyeosc: アイトラッキングを VRChat に送る
-- frame-mic-tuner: マイクの処理 (エコー除去など) の調整
-- frame-perf-overlay, aux-shortcuts
+- [FrameMover](https://github.com/NotZoeyDev/FrameMover): プレイスペースの移動. OVR Advanced Settings の代わりに使っている
+- frame-aux-shortcuts, frame-perf-overlay (sasaken さん作)
+- 使わなくなったもの: frameeyeosc (アイトラッキング), frame-mic-tuner (マイク調整), OVR Advanced Settings. frameeyeosc と frame-mic-tuner は自動起動を止めてある (2026-11-02). アンインストールはしていない
 
 ## メモ
 
