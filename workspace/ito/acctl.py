@@ -51,7 +51,10 @@ def norm(d):
 
 def decide(rule, T, H):
     if H > 60: return "HUMID", DRY
-    if T < 24.5: return "COLD", HEAT
+    if T < 24.5:
+        # 睡眠中(1:00〜10:00 JST)は暖房禁止。全ルール共通
+        if 1 <= now().hour < 10: return "OFF", OFF
+        return "COLD", HEAT
     table, offth = RULES[rule]
     for th, name, body in table:
         if T > th: return name, body
