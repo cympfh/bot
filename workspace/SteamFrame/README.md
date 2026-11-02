@@ -13,6 +13,7 @@ VR ヘッドセット Steam Frame まわり (SSH での操作, 常駐サービ�
 | リポジトリ | 動く場所 | 内容 |
 |---|---|---|
 | [frame-steamvr-remote](https://github.com/cympfh/frame-steamvr-remote) | Frame + Windows | Frame の SteamVR ダッシュボードのパネルから, PC の SteamVR を終了・再起動する. PC 側はトレイ常駐. 終了・再起動は 5 秒以内に 2 回押したときだけ効く. exe はリリースに添付 |
+| [frame-video-player](https://github.com/cympfh/frame-video-player) | Frame (+ Windows) | SteamVR ダッシュボードの「動画プレイヤー」. Frame の ~/Videos, PC の「ビデオ」フォルダ (frame-steamvr-remote のトレイが HTTP で配信), YouTube (yt-dlp を自分の領域に置く), 360°/180°. ffmpeg で展開して GL テクスチャでオーバーレイに出す. systemd user unit で SteamVR と一緒に起動 |
 | [vrc-companion](https://github.com/cympfh/vrc-companion) | Windows + SteamVR オーバーレイ | VRChat の補助. 音声の書き起こしと Eliza の返答をオーバーレイに出す (長文はスクロール), OSC パラメータのトグルボタンなど. ログは全文をファイルに残す |
 | [vrc-wrist-notifier](https://github.com/cympfh/vrc-wrist-notifier) | Windows | VRChat のログから参加・退出・招待などを拾ってオーバーレイに通知. 履歴は自前の history.jsonl に残すので, VRChat 本体のログを消しても残る |
 | [frame-doctor](https://github.com/cympfh/frame-doctor) | Frame | 温度・電池・空き容量・SteamVR・ツールの状態を 1 コマンドで見る. 読むだけで何も変えない |
