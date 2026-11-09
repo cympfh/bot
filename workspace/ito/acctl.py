@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""リビングのエアコン自動制御。使い方: acctl.py <厳しめ|標準|ゆるめ>  (5分おき)
+"""リビングのエアコン自動制御。使い方: acctl.py <夏ゆるめ|夏標準|夏厳しめ|冬ゆるめ|冬標準|冬厳しめ>
+別名: ゆるめ/標準/厳しめ は夏の各ルールと同じ。5分おき
 ログ: <このディレクトリ>/aclog/log.csv  グラフ: <このディレクトリ>/aclog/graph.png"""
 import csv, json, os, subprocess, sys, time, urllib.request
 from datetime import datetime, timedelta
@@ -19,12 +20,28 @@ C26F2 = {"mode": "cool", "temperature": 26, "fan": 2}
 C26F3 = {"mode": "cool", "temperature": 26, "fan": 3}
 DRY = {"mode": "dry", "temperature": 24, "fan": 2}
 HEAT = {"mode": "heat", "temperature": 22, "fan": 2}
+HEAT23 = {"mode": "heat", "temperature": 23, "fan": 2}
+HEAT24 = {"mode": "heat", "temperature": 24, "fan": 2}
+HEAT25 = {"mode": "heat", "temperature": 25, "fan": 2}
 
-# (閾値表: T>x なら設定, 上から), off閾値(T<=x)
+# 夏: (閾値表: T>x なら設定, 上から), off閾値(T<=x)。T<24.5 は共通で heat22 風2
+SUMMER = {
+    "夏厳しめ": ([(27.0, "COOL3", C26F3), (26.0, "COOL2", C26F2)], 24.5),
+    "夏標準":   ([(27.5, "COOL3", C26F3), (26.5, "COOL2", C26F2), (26.0, "FAN", FAN2)], 25.5),
+    "夏ゆるめ": ([(28.0, "COOL3", C26F3), (27.0, "COOL2", C26F2), (26.0, "FAN", FAN2)], 25.0),
+}
+# 冬: T>cool なら冷房、T>off_above なら off、T<heat_on なら暖房、あいだは前回維持
+WINTER = {
+    "冬ゆるめ": {"heat_on": 24.5, "heat": HEAT23, "off_above": 25.5, "cool": [(28.0, "COOL2", C26F2)]},
+    "冬標準":   {"heat_on": 25.0, "heat": HEAT24, "off_above": 26.0, "cool": [(27.5, "COOL2", C26F2)]},
+    "冬厳しめ": {"heat_on": 25.5, "heat": HEAT25, "off_above": 26.5, "cool": [(28.0, "COOL2", C26F2)]},
+}
 RULES = {
-    "厳しめ": ([(27.0, "COOL3", C26F3), (26.0, "COOL2", C26F2)], 24.5),
-    "標準":   ([(27.5, "COOL3", C26F3), (26.5, "COOL2", C26F2), (26.0, "FAN", FAN2)], 25.5),
-    "ゆるめ": ([(28.0, "COOL3", C26F3), (27.0, "COOL2", C26F2), (26.0, "FAN", FAN2)], 25.0),
+    **SUMMER,
+    "厳しめ": SUMMER["夏厳しめ"],
+    "標準": SUMMER["夏標準"],
+    "ゆるめ": SUMMER["夏ゆるめ"],
+    **WINTER,
 }
 
 def now(): return datetime.now()
@@ -51,9 +68,19 @@ def norm(d):
 
 def decide(rule, T, H):
     if H > 60: return "HUMID", DRY
+    night = 1 <= now().hour < 10
+    if rule in WINTER:
+        w = WINTER[rule]
+        for th, name, body in w["cool"]:
+            if T > th: return name, body
+        if T > w["off_above"]: return "OFF", OFF
+        if T < w["heat_on"]:
+            if night: return "OFF", OFF
+            return "COLD", w["heat"]
+        return "HOLD", None
     if T < 24.5:
         # 睡眠中(1:00〜10:00 JST)は暖房禁止。全ルール共通
-        if 1 <= now().hour < 10: return "OFF", OFF
+        if night: return "OFF", OFF
         return "COLD", HEAT
     table, offth = RULES[rule]
     for th, name, body in table:
