@@ -74,8 +74,10 @@ def decide(rule, T, H):
         for th, name, body in w["cool"]:
             if T > th: return name, body
         if T > w["off_above"]: return "OFF", OFF
+        if night:
+            # 睡眠中(1:00〜10:00 JST)は暖房禁止。HOLD帯で暖房が残るのも防ぐ
+            return "OFF", OFF
         if T < w["heat_on"]:
-            if night: return "OFF", OFF
             return "COLD", w["heat"]
         return "HOLD", None
     if T < 24.5:
