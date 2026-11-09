@@ -33,7 +33,7 @@ SUMMER = {
 # 冬: T>cool なら冷房、T>off_above なら off、T<heat_on なら暖房、あいだは前回維持
 WINTER = {
     "冬ゆるめ": {"heat_on": 24.5, "heat": HEAT23, "off_above": 25.5, "cool": [(28.0, "COOL2", C26F2)]},
-    "冬標準":   {"heat_on": 25.0, "heat": HEAT24, "off_above": 26.0, "cool": [(27.5, "COOL2", C26F2)]},
+    "冬標準":   {"heat_on": 25.0, "heat": HEAT25, "off_above": 26.0, "cool": [(27.5, "COOL2", C26F2)]},
     "冬厳しめ": {"heat_on": 25.5, "heat": HEAT25, "off_above": 26.5, "cool": [(28.0, "COOL2", C26F2)]},
 }
 RULES = {
