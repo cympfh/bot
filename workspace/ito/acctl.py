@@ -30,9 +30,9 @@ SUMMER = {
     "夏標準":   ([(27.5, "COOL3", C26F3), (26.5, "COOL2", C26F2), (26.0, "FAN", FAN2)], 25.5),
     "夏ゆるめ": ([(28.0, "COOL3", C26F3), (27.0, "COOL2", C26F2), (26.0, "FAN", FAN2)], 25.0),
 }
-# 冬: T>cool なら冷房、T>off_above なら off、T<heat_on なら暖房、あいだは前回維持
+# 冬: T>cool なら冷房、T>off_above なら off、T<heat_on なら暖房、fan_below があれば heat_on〜fan_below は送風、残りは前回維持
 WINTER = {
-    "冬ゆるめ": {"heat_on": 24.0, "heat": HEAT23, "off_above": 25.5, "cool": [(28.0, "COOL2", C26F2)]},
+    "冬ゆるめ": {"heat_on": 24.0, "heat": HEAT23, "fan_below": 25.0, "off_above": 25.5, "cool": [(28.0, "COOL2", C26F2)]},
     "冬標準":   {"heat_on": 25.0, "heat": HEAT25, "off_above": 26.0, "cool": [(27.5, "COOL2", C26F2)]},
     "冬厳しめ": {"heat_on": 25.5, "heat": HEAT25, "off_above": 26.5, "cool": [(28.0, "COOL2", C26F2)]},
 }
@@ -74,6 +74,8 @@ def decide(rule, T, H):
         for th, name, body in w["cool"]:
             if T > th: return name, body
         if T > w["off_above"]: return "OFF", OFF
+        if "fan_below" in w and w["heat_on"] <= T < w["fan_below"]:
+            return "FAN", FAN2  # 送風は夜間も可
         if night:
             # 睡眠中(1:00〜10:00 JST)は暖房禁止。HOLD帯で暖房が残るのも防ぐ
             return "OFF", OFF
