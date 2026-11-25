@@ -12,6 +12,8 @@ LOG = f"{DIR}/log.csv"
 PNG = f"{DIR}/graph.png"
 INTERVAL = 300
 RESEND = 60 * 60
+HEAT_STREAK = 60 * 60  # 暖房が連続したらオフにする時間
+HEAT_COOLDOWN = 10 * 60  # その後オフを続ける時間
 FIELDS = ["time", "rule", "temp", "hum", "state", "target", "current", "action", "reason", "result"]
 
 OFF = {"mode": "off"}
@@ -66,9 +68,10 @@ def norm(d):
     if m == "fan": return f"fan/{d.get('fan')}"
     return f"{m}/{d.get('temperature')}/{d.get('fan')}"
 
-def decide(rule, T, H):
+def decide(rule, T, H, t=None):
+    if t is None: t = now()
     if H > 60: return "HUMID", DRY
-    night = 1 <= now().hour < 10
+    night = 1 <= t.hour < 10
     if rule in WINTER:
         w = WINTER[rule]
         for th, name, body in w["cool"]:
@@ -91,6 +94,56 @@ def decide(rule, T, H):
         if T > th: return name, body
     if T <= offth: return "OFF", OFF
     return "HOLD", None
+
+def is_heat(mode):
+    return (mode or "").startswith("heat/")
+
+def actual_ac(row):
+    """その行のあと実機がどうなっていたか。成功した POST なら target、それ以外は current。"""
+    if row.get("action") == "POST" and row.get("result") == "success" and row.get("target"):
+        return row["target"]
+    return row.get("current") or ""
+
+def heat_streak_start(rows, t, current):
+    """いま暖房中なら、直近の非暖房行のあと最初の暖房行の時刻。連続は開始時刻から測り、ログ欠落では切らない。"""
+    if not is_heat(current):
+        return None
+    start = t
+    for r in reversed(rows):
+        mode = actual_ac(r)
+        if not mode or not r.get("time"):
+            continue
+        try:
+            rt = datetime.fromisoformat(r["time"])
+        except ValueError:
+            continue
+        if is_heat(mode):
+            start = rt
+        else:
+            break
+    return start
+
+def cooldown_start(rows):
+    for r in reversed(rows):
+        if r.get("state") == "COOLDOWN" and r.get("action") == "POST" and r.get("result") == "success":
+            try:
+                return datetime.fromisoformat(r["time"])
+            except ValueError:
+                return None
+    return None
+
+def in_heat_cooldown(rows, t):
+    cs = cooldown_start(rows)
+    return cs is not None and (t - cs).total_seconds() < HEAT_COOLDOWN
+
+def apply_heat_cooldown(rows, t, current, state, body):
+    """暖房1時間連続 → 10分オフ。除湿・冷房・送風・HOLDなどより最優先。"""
+    if in_heat_cooldown(rows, t):
+        return "COOLDOWN", OFF
+    start = heat_streak_start(rows, t, current)
+    if start is not None and (t - start).total_seconds() >= HEAT_STREAK:
+        return "COOLDOWN", OFF
+    return state, body
 
 def write(row):
     new = not os.path.exists(LOG)
@@ -122,13 +175,14 @@ def step(rule):
             except Exception: time.sleep(5)
         if T is None: raise RuntimeError("hub2 read failed")
         cur = norm(get("/api/aircon"))
-        S, body = decide(rule, T, H)
+        rows = history()
+        S, body = decide(rule, T, H, t)
+        S, body = apply_heat_cooldown(rows, t, cur, S, body)
         row.update(temp=T, hum=H, state=S, current=cur)
         if body is None:
             row.update(target=cur, action="SKIP", reason="hold")
         else:
             tgt = norm(body); row["target"] = tgt
-            rows = history()
             since = t - timedelta(seconds=RESEND)
             recent = [r for r in rows if r["time"] and datetime.fromisoformat(r["time"]) >= since and r["state"]]
             lp = last_post_time(rows, tgt)
